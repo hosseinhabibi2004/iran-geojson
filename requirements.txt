@@ -1,0 +1,8 @@
+certifi==2023.7.22
+charset-normalizer==3.3.2
+idna==3.4
+numpy==1.26.2
+osm2geojson==0.2.4
+requests==2.31.0
+shapely==2.0.2
+urllib3==2.1.0
