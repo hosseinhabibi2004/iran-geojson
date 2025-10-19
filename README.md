@@ -111,6 +111,57 @@ The GeoJSON files can be used in various mapping libraries and applications:
 - **R**: leaflet, mapview
 - **QGIS**: Direct import of GeoJSON files
 
+### Using with Metabase
+
+You can use these GeoJSON files as custom region maps in [Metabase](https://www.metabase.com/). This allows you to create interactive maps of Iran's provinces in your Metabase dashboards.
+
+#### Setting up Custom Region Maps
+
+1. **Access Map Settings**:
+   - Go to **Admin Settings** > **Settings** > **Maps**
+   - Click on **Custom Maps** tab
+
+2. **Add Iran Map**:
+   - Click **Add a Map**
+   - **Name**: "Iran"
+   - **URL**: Use the direct URL to `provinces.short.min.geojson` (copy the link from [here](https://raw.githubusercontent.com/hosseinhabibi2004/iran-geojson/refs/heads/master/data/provinces/provinces.short.min.geojson))
+   - **Region's identifier**: `ISO3166-2` (matches the province codes like IR-23, IR-01, etc.)
+   - **Region's display name**: `name:en` (English names) or `name:fa` (Persian names)
+
+#### Data Requirements for Metabase
+
+- **File size**: Must be less than 5 MB (the provided file is optimized for this)
+- **Accessibility**: Must be accessible via public URL
+- **Format**: Must contain polygon features (not just points)
+- **Coordinates**: Must use geographic coordinates (latitude/longitude)
+
+#### Environment Variable Setup
+
+To pre-load the maps when Metabase starts, you can use the environment variable:
+
+```bash
+MB_CUSTOM_GEOJSON='[
+  {
+    "name": "Iran",
+    "url": "https://raw.githubusercontent.com/hosseinhabibi2004/iran-geojson/refs/heads/master/data/provinces/provinces.short.min.geojson",
+    "region_key": "ISO3166-2",
+    "region_name": "name:en"
+  }
+]'
+```
+
+#### Creating Maps in Metabase
+
+Once configured, you can create region maps in Metabase by:
+
+1. Creating a new question
+2. Selecting your data source
+3. Choosing **Visualization** > **Map** > **Region map**
+4. Selecting "Iran" from the region dropdown
+5. Mapping your data's region identifier column to the GeoJSON's identifier field
+
+For more details, see the [Metabase Custom Maps documentation](https://www.metabase.com/docs/latest/configuring-metabase/custom-maps#custom-region-maps).
+
 ## Data Description
 
 ### File Types
