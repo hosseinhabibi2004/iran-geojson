@@ -14,10 +14,10 @@ This project provides GeoJSON files for Iran's administrative divisions, includi
 iran-geojson/
 ├── data/
 │   ├── provinces/
-│   │   ├── provinces.all.geojson      # All 31 provinces (full data)
+│   │   ├── provinces.all.geojson      # All 31 provinces (full data with cleaned names)
 │   │   ├── provinces.all.min.geojson  # All 31 provinces (minified)
-│   │   ├── provinces.short.geojson    # Cleaned names (Persian + English)
-│   │   └── provinces.short.min.geojson # Short names (minified)
+│   │   ├── provinces.geojson          # Short version (only name:fa and name:en)
+│   │   └── provinces.min.geojson      # Short version (minified)
 │   └── counties/
 │       ├── IR-00/
 │       │   ├── IR-00.all.geojson      # Markazī counties (full data)
@@ -70,10 +70,10 @@ python scripts/get_geojson_iran_provinces.py
 
 This will create 4 files:
 
-- `provinces.all.geojson` - Full data with all language names
+- `provinces.all.geojson` - Full data with all original tags + cleaned name values
 - `provinces.all.min.geojson` - Full data (minified)
-- `provinces.short.geojson` - Cleaned names (Persian + English only)
-- `provinces.short.min.geojson` - Short names (minified)
+- `provinces.geojson` - Short version (only name:fa and name:en in properties)
+- `provinces.min.geojson` - Short version (minified)
 
 **Download and process counties data:**
 
@@ -97,10 +97,11 @@ The scripts automatically clean and process names:
 - Removes "Province" suffix (e.g., "Tehran Province" → "Tehran")
 - Removes extra spaces and common administrative terms
 
-**Short Names:**
+**Data Structure:**
 
-- Further removes common words like "شهرستان", "بخش", "county", "district"
-- Creates more concise versions for display purposes
+- **`.all` versions**: Keep all original tags and properties, only clean the name values
+- **Short versions**: Remove tags completely, keep only `name:fa` and `name:en` in properties
+- **Metabase optimized**: `name:fa` and `name:en` are directly accessible in properties
 
 ### Using the Data
 
@@ -124,8 +125,8 @@ You can use these GeoJSON files as custom region maps in [Metabase](https://www.
 2. **Add Iran Map**:
    - Click **Add a Map**
    - **Name**: "Iran"
-   - **URL**: Use the direct URL to `provinces.short.min.geojson` (copy the link from [here](https://raw.githubusercontent.com/hosseinhabibi2004/iran-geojson/refs/heads/master/data/provinces/provinces.short.min.geojson))
-   - **Region's identifier**: `ISO3166-2` (matches the province codes like IR-23, IR-01, etc.)
+   - **URL**: Use the direct URL to `provinces.min.geojson` (copy the link from [here](https://raw.githubusercontent.com/hosseinhabibi2004/iran-geojson/refs/heads/master/data/provinces/provinces.min.geojson))
+   - **Region's identifier**: `name:en` (English names) or `name:fa` (Persian names)
    - **Region's display name**: `name:en` (English names) or `name:fa` (Persian names)
 
 #### Data Requirements for Metabase
@@ -143,8 +144,8 @@ To pre-load the maps when Metabase starts, you can use the environment variable:
 MB_CUSTOM_GEOJSON='[
   {
     "name": "Iran",
-    "url": "https://raw.githubusercontent.com/hosseinhabibi2004/iran-geojson/refs/heads/master/data/provinces/provinces.short.min.geojson",
-    "region_key": "ISO3166-2",
+    "url": "https://raw.githubusercontent.com/hosseinhabibi2004/iran-geojson/refs/heads/master/data/provinces/provinces.min.geojson",
+    "region_key": "name:en",
     "region_name": "name:en"
   }
 ]'
@@ -158,7 +159,7 @@ Once configured, you can create region maps in Metabase by:
 2. Selecting your data source
 3. Choosing **Visualization** > **Map** > **Region map**
 4. Selecting "Iran" from the region dropdown
-5. Mapping your data's region identifier column to the GeoJSON's identifier field
+5. Mapping your data's region identifier column to the GeoJSON's name field (name:en or name:fa)
 
 For more details, see the [Metabase Custom Maps documentation](https://www.metabase.com/docs/latest/configuring-metabase/custom-maps#custom-region-maps).
 
@@ -166,17 +167,17 @@ For more details, see the [Metabase Custom Maps documentation](https://www.metab
 
 ### File Types
 
-- **`.all.geojson`** - Full data with all language names from OpenStreetMap
+- **`.all.geojson`** - Full data with all original tags + cleaned name values
 - **`.all.min.geojson`** - Full data (minified for smaller file size)
-- **`.short.geojson`** - Cleaned data with only Persian and English names
-- **`.short.min.geojson`** - Short names (minified)
+- **`.geojson`** - Short version with only `name:fa` and `name:en` in properties
+- **`.min.geojson`** - Short version (minified)
 
 ### Provinces (استان‌ها)
 
 The provinces data contains boundaries of all 31 provinces of Iran in multiple formats:
 
-- `provinces.all.geojson` - Original data with all language names
-- `provinces.short.geojson` - Cleaned names (removes "استان" from Persian, "Province" from English)
+- `provinces.all.geojson` - Full data with all original tags + cleaned name values
+- `provinces.geojson` - Short version with only `name:fa` and `name:en` in properties
 
 ### Counties (شهرستان‌ها)
 

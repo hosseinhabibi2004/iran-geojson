@@ -18,6 +18,10 @@ def clean_persian_name(name):
     # Remove extra spaces
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
 
+    # Specific corrections
+    if cleaned == "کهگیلویه و بویر احمد":
+        cleaned = "کهگیلویه و بویراحمد"
+
     return cleaned
 
 
@@ -35,106 +39,59 @@ def clean_english_name(name):
     return cleaned
 
 
-def create_short_name(name):
-    """Create a short version by removing common words and extra spaces."""
-    if not name:
-        return name
-
-    # Remove common Persian words that might be redundant
-    persian_common_words = ["استان", "شهرستان", "بخش", "دهستان", "روستا", "شهر"]
-
-    # Remove common English words
-    english_common_words = ["province", "state", "county", "district", "region", "area"]
-
-    cleaned = name.strip()
-
-    # Remove Persian common words
-    for word in persian_common_words:
-        cleaned = re.sub(rf"\b{re.escape(word)}\b\s*", "", cleaned, flags=re.IGNORECASE)
-
-    # Remove English common words
-    for word in english_common_words:
-        cleaned = re.sub(rf"\b{re.escape(word)}\b\s*", "", cleaned, flags=re.IGNORECASE)
-
-    # Remove extra spaces
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-
-    return cleaned
-
-
 def process_provinces_data(geojson_data):
     """Process the provinces GeoJSON data and create cleaned versions."""
 
     # Process each feature to clean the names
-    cleaned_features = []
+    all_features = []
     short_features = []
 
     for feature in geojson_data.get("features", []):
         properties = feature.get("properties", {})
         tags = properties.get("tags", {})
 
-        # Create cleaned tags with only Persian and English names
-        cleaned_tags = {}
-        short_tags = {}
-
-        # Keep essential properties
-        for key in [
-            "ISO3166-2",
-            "admin_level",
-            "boundary",
-            "is_in:country",
-            "is_in:country_code",
-        ]:
-            if key in tags:
-                cleaned_tags[key] = tags[key]
-                short_tags[key] = tags[key]
-
-        # Clean and add Persian name
+        # Clean names
         persian_name = tags.get("name:fa") or tags.get("name", "")
-        if persian_name:
-            clean_persian = clean_persian_name(persian_name)
-            if clean_persian:
-                cleaned_tags["name"] = clean_persian
-                cleaned_tags["name:fa"] = clean_persian
-                short_tags["name"] = create_short_name(clean_persian)
-                short_tags["name:fa"] = create_short_name(clean_persian)
+        clean_persian = clean_persian_name(persian_name)
 
-        # Clean and add English name
         english_name = tags.get("name:en", "")
-        if english_name:
-            clean_english = clean_english_name(english_name)
-            if clean_english:
-                cleaned_tags["name:en"] = clean_english
-                short_tags["name:en"] = create_short_name(clean_english)
+        clean_english = clean_english_name(english_name)
 
-        # Create cleaned feature
-        cleaned_feature = {
+        # Create all feature (original structure + cleaned name values)
+        all_properties = properties.copy()
+        all_tags = tags.copy()
+        if clean_persian:
+            all_tags["name:fa"] = clean_persian
+        if clean_english:
+            all_tags["name:en"] = clean_english
+        all_properties["tags"] = all_tags
+
+        all_feature = {
             "type": feature.get("type"),
-            "properties": {
-                "type": properties.get("type"),
-                "id": properties.get("id"),
-                "tags": cleaned_tags,
-            },
+            "properties": all_properties,
             "geometry": feature.get("geometry"),
         }
 
-        # Create short feature
+        # Create short properties (only name:fa and name:en)
+        short_properties = {}
+        if clean_persian:
+            short_properties["name:fa"] = clean_persian
+        if clean_english:
+            short_properties["name:en"] = clean_english
+
+        # Create short feature (no tags, no id, only names)
         short_feature = {
             "type": feature.get("type"),
-            "properties": {
-                "type": properties.get("type"),
-                "id": properties.get("id"),
-                "tags": short_tags,
-            },
+            "properties": short_properties,
             "geometry": feature.get("geometry"),
         }
 
         # Only add if we have at least one cleaned name
-        if cleaned_tags.get("name") or cleaned_tags.get("name:en"):
-            cleaned_features.append(cleaned_feature)
+        if clean_persian or clean_english:
+            all_features.append(all_feature)
             short_features.append(short_feature)
 
-    return cleaned_features, short_features
+    return all_features, short_features
 
 
 def download_provinces_data():
@@ -158,29 +115,26 @@ out geom;
     return geojson
 
 
-def save_geojson_files(geojson_data, output_dir):
+def save_geojson_files(all_features, short_features, output_dir):
     """Save GeoJSON data in different formats."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Process the data
-    cleaned_features, short_features = process_provinces_data(geojson_data)
 
     # Create different versions
     versions = {
         "provinces.all.geojson": {
             "type": "FeatureCollection",
-            "features": geojson_data.get("features", []),
+            "features": all_features,
         },
         "provinces.all.min.geojson": {
             "type": "FeatureCollection",
-            "features": geojson_data.get("features", []),
+            "features": all_features,
         },
-        "provinces.short.geojson": {
+        "provinces.geojson": {
             "type": "FeatureCollection",
-            "features": cleaned_features,
+            "features": short_features,
         },
-        "provinces.short.min.geojson": {
+        "provinces.min.geojson": {
             "type": "FeatureCollection",
             "features": short_features,
         },
@@ -200,8 +154,7 @@ def save_geojson_files(geojson_data, output_dir):
 
         print(f"Created: {filepath}")
 
-    print(f"\nProcessed {len(cleaned_features)} provinces")
-    return cleaned_features
+    print(f"\nProcessed {len(all_features)} provinces")
 
 
 def main():
@@ -216,15 +169,19 @@ def main():
         # Download data
         geojson_data = download_provinces_data()
 
-        # Process and save
-        features = save_geojson_files(geojson_data, output_dir)
+        # Process data
+        all_features, short_features = process_provinces_data(geojson_data)
+
+        # Save files
+        save_geojson_files(all_features, short_features, output_dir)
 
         # Print sample of processed data
         print("\nSample processed provinces:")
-        for i, feature in enumerate(features[:3]):
-            tags = feature.get("properties", {}).get("tags", {})
+        for i, feature in enumerate(all_features[:3]):
+            properties = feature.get("properties", {})
+            tags = properties.get("tags", {})
             iso_code = tags.get("ISO3166-2", "N/A")
-            persian_name = tags.get("name", "")
+            persian_name = tags.get("name:fa", "")
             english_name = tags.get("name:en", "")
 
             print(f"\n{i + 1}. {iso_code}")
